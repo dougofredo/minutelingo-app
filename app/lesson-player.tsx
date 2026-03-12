@@ -3,12 +3,13 @@ import { ThemedView } from "@/components/themed-view";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { Colors } from "@/constants/theme";
 import { useToast } from "@/contexts/toast-context";
-import type { Lesson } from "@/data/lessons-fr";
+import { getLessonsForLanguage, type Lesson } from "@/data/lessons-fr";
+import { useLanguage } from "@/contexts/language-context";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { Audio } from "expo-av";
 import { Image } from "expo-image";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   ScrollView,
@@ -35,6 +36,7 @@ export default function LessonPlayerScreen() {
   const colors = Colors[colorScheme ?? "light"];
   const insets = useSafeAreaInsets();
   const { showError } = useToast();
+   const { language } = useLanguage();
 
   const lesson: Lesson | null = params.lesson
     ? JSON.parse(params.lesson as string)
@@ -50,6 +52,24 @@ export default function LessonPlayerScreen() {
   const audioUrl = lesson?.audio ? buildMediaUrl(lesson.audio) : null;
   const imageUrl = lesson?.image ? buildMediaUrl(lesson.image) : null;
   const hasAudio = !!audioUrl;
+
+  const lessonsInLanguage = useMemo(
+    () => (language ? getLessonsForLanguage(language) : []),
+    [language],
+  );
+
+  const currentLessonIndex =
+    lesson && lessonsInLanguage.length > 0
+      ? lessonsInLanguage.findIndex((l) => l.lesson === lesson.lesson)
+      : -1;
+
+  const previousLesson =
+    currentLessonIndex > 0 ? lessonsInLanguage[currentLessonIndex - 1] : null;
+  const nextLesson =
+    currentLessonIndex >= 0 &&
+    currentLessonIndex < lessonsInLanguage.length - 1
+      ? lessonsInLanguage[currentLessonIndex + 1]
+      : null;
 
   useEffect(() => {
     return () => {
@@ -179,6 +199,24 @@ export default function LessonPlayerScreen() {
       await sound.setPositionAsync(newPosition);
       setPosition(newPosition);
     }
+  };
+
+  const navigateToLesson = async (target: Lesson | null) => {
+    if (!target) return;
+    if (sound) {
+      try {
+        await sound.unloadAsync();
+      } catch {
+        // ignore unload errors
+      }
+      setSound(null);
+      setIsPlaying(false);
+      setPosition(0);
+    }
+    router.replace({
+      pathname: "/lesson-player",
+      params: { lesson: JSON.stringify(target) },
+    });
   };
 
   const handleProgressBarPress = async (event: {
@@ -327,6 +365,24 @@ export default function LessonPlayerScreen() {
             </ThemedView>
             <ThemedView style={styles.seekButtonsContainer}>
               <TouchableOpacity
+                onPress={() => navigateToLesson(previousLesson)}
+                disabled={!previousLesson}
+                style={[
+                  styles.lessonNavButton,
+                  { opacity: previousLesson ? 1 : 0.4 },
+                ]}
+                activeOpacity={0.7}
+              >
+                <IconSymbol
+                  name="backward.end.fill"
+                  size={20}
+                  color={colors.tint}
+                />
+                <ThemedText style={styles.seekButtonLabel}>
+                  Prev lesson
+                </ThemedText>
+              </TouchableOpacity>
+              <TouchableOpacity
                 onPress={seekBackward}
                 disabled={!sound}
                 style={[styles.seekButton, { opacity: sound ? 1 : 0.4 }]}
@@ -347,6 +403,24 @@ export default function LessonPlayerScreen() {
                   color={colors.tint}
                 />
                 <ThemedText style={styles.seekButtonLabel}>+10s</ThemedText>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => navigateToLesson(nextLesson)}
+                disabled={!nextLesson}
+                style={[
+                  styles.lessonNavButton,
+                  { opacity: nextLesson ? 1 : 0.4 },
+                ]}
+                activeOpacity={0.7}
+              >
+                <IconSymbol
+                  name="forward.end.fill"
+                  size={20}
+                  color={colors.tint}
+                />
+                <ThemedText style={styles.seekButtonLabel}>
+                  Next lesson
+                </ThemedText>
               </TouchableOpacity>
             </ThemedView>
           </ThemedView>
@@ -432,7 +506,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
-    gap: 32,
+    gap: 16,
     marginTop: 16,
   },
   seekButton: {
@@ -440,6 +514,14 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     paddingVertical: 8,
     paddingHorizontal: 16,
+    borderRadius: 8,
+    minWidth: 80,
+  },
+  lessonNavButton: {
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 8,
+    paddingHorizontal: 8,
     borderRadius: 8,
     minWidth: 80,
   },

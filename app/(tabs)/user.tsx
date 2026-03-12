@@ -1,8 +1,11 @@
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { IconSymbol } from '@/components/ui/icon-symbol';
+import { ACCOUNT_LANGUAGES } from '@/constants/languages';
 import { isFree } from '@/constants/config';
 import { Colors } from '@/constants/theme';
+import { useLanguage } from '@/contexts/language-context';
+import { useProfile } from '@/contexts/profile-context';
 import { useToast } from '@/contexts/toast-context';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useSubscription } from '@/hooks/use-subscription';
@@ -10,7 +13,7 @@ import { supabase } from '@/supabaseClient';
 import { openBrowserAsync, WebBrowserPresentationStyle } from 'expo-web-browser';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ScrollView, StyleSheet, TouchableOpacity } from 'react-native';
+import { ActionSheetIOS, Platform, ScrollView, StyleSheet, TouchableOpacity } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const DELETE_ACCOUNT_URL = 'https://www.minutelingo.com/delete-account';
@@ -24,6 +27,57 @@ export default function UserScreen() {
   const colors = Colors[colorScheme ?? 'light'];
   const insets = useSafeAreaInsets();
   const { subscriptionStatus, restorePurchases } = useSubscription();
+  const { language, setLanguage } = useLanguage();
+  const { username } = useProfile();
+
+  const currentLanguage =
+    ACCOUNT_LANGUAGES.find((l) => l.code === language) ?? ACCOUNT_LANGUAGES[0];
+
+  const getLanguageFlag = (code: string | null | undefined): string | null => {
+    switch (code) {
+      case 'fr':
+        return '🇫🇷';
+      case 'es':
+        return '🇪🇸';
+      default:
+        return null;
+    }
+  };
+
+  const handleSelectLanguage = async (code: string) => {
+    await setLanguage(code as any);
+  };
+
+  const handleOpenLanguageMenu = () => {
+    const options = ACCOUNT_LANGUAGES.map(
+      ({ code, label }) => `${getLanguageFlag(code)} ${label}`,
+    );
+
+    if (Platform.OS === 'ios') {
+      ActionSheetIOS.showActionSheetWithOptions(
+        {
+          title: 'Select learning language',
+          options: [...options, 'Cancel'],
+          cancelButtonIndex: options.length,
+        },
+        (buttonIndex) => {
+          if (buttonIndex === options.length) return;
+          const selected = ACCOUNT_LANGUAGES[buttonIndex];
+          if (selected) {
+            handleSelectLanguage(selected.code);
+          }
+        },
+      );
+    } else {
+      // Fallback: cycle through languages on other platforms
+      const idx = ACCOUNT_LANGUAGES.findIndex(
+        (l) => l.code === currentLanguage.code,
+      );
+      const next =
+        ACCOUNT_LANGUAGES[(idx + 1) % ACCOUNT_LANGUAGES.length];
+      handleSelectLanguage(next.code);
+    }
+  };
 
   useEffect(() => {
     const checkSession = async () => {
@@ -75,6 +129,13 @@ export default function UserScreen() {
     }
   };
 
+  const greeting = (() => {
+    if (!username) return null;
+    if (currentLanguage.code === 'fr') return `Bonjour ${username}`;
+    if (currentLanguage.code === 'es') return `Hola ${username}`;
+    return `Hello ${username}`;
+  })();
+
   return (
     <ThemedView style={styles.container}>
       <ThemedView style={[styles.header, { paddingTop: insets.top + 20 }]}>
@@ -84,6 +145,11 @@ export default function UserScreen() {
       </ThemedView>
 
       <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
+        {greeting && (
+          <ThemedText type="subtitle" style={styles.greetingText}>
+            {greeting}
+          </ThemedText>
+        )}
         {userEmail ? (
           <ThemedView style={styles.userInfo}>
             <ThemedView style={styles.userIconContainer}>
@@ -161,6 +227,29 @@ export default function UserScreen() {
         </ThemedView>
         )}
 
+        <ThemedView style={styles.languageCard}>
+          <ThemedText type="subtitle" style={styles.languageTitle}>
+            Learning language
+          </ThemedText>
+          <ThemedText style={styles.languageSubtitle}>
+            You can change this at any time.
+          </ThemedText>
+          <TouchableOpacity
+            style={[styles.languageSelector, { borderColor: colors.icon }]}
+            onPress={handleOpenLanguageMenu}
+            activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel={`Current learning language ${currentLanguage.label}. Tap to change.`}
+          >
+            <ThemedText style={styles.languageSelectorLabel}>
+              {getLanguageFlag(currentLanguage.code)} {currentLanguage.label}
+            </ThemedText>
+            <ThemedText style={styles.languageSelectorHint}>
+              ▼
+            </ThemedText>
+          </TouchableOpacity>
+        </ThemedView>
+
         {userEmail && (
           <>
             <TouchableOpacity
@@ -205,6 +294,10 @@ const styles = StyleSheet.create({
   contentContainer: {
     padding: 20,
     alignItems: 'center',
+  },
+  greetingText: {
+    marginTop: 4,
+    marginBottom: 8,
   },
   userInfo: {
     alignItems: 'center',
@@ -300,6 +393,40 @@ const styles = StyleSheet.create({
     fontSize: 14,
     opacity: 0.7,
     textDecorationLine: 'underline',
+  },
+  languageCard: {
+    width: '100%',
+    marginTop: 8,
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.05)',
+  },
+  languageTitle: {
+    marginBottom: 4,
+  },
+  languageSubtitle: {
+    fontSize: 13,
+    opacity: 0.7,
+    marginBottom: 12,
+  },
+  languageSelector: {
+    borderWidth: 1,
+    borderRadius: 999,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  languageSelectorLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  languageSelectorHint: {
+    fontSize: 13,
+    opacity: 0.7,
+    marginLeft: 8,
   },
 });
 

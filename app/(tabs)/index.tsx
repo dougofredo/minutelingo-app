@@ -18,12 +18,28 @@ function buildImageUrl(path: string | null): string | null {
   return `${base}/${path}`;
 }
 
+function getLanguageFlag(code: string | null | undefined): string | null {
+  switch (code) {
+    case 'fr':
+      return '🇫🇷';
+    case 'es':
+      return '🇪🇸';
+    case 'it':
+      return '🇮🇹';
+    case 'de':
+      return '🇩🇪';
+    default:
+      return null;
+  }
+}
+
 export default function HomeScreen() {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { language } = useLanguage();
+  const languageFlag = getLanguageFlag(language);
 
   const lessons = useMemo(() => {
     if (!language) return [];
@@ -92,6 +108,15 @@ export default function HomeScreen() {
         <ThemedText type="title" style={styles.headerTitle}>
           Lessons
         </ThemedText>
+        {languageFlag && (
+          <ThemedText
+            style={styles.languageFlag}
+            accessibilityRole="image"
+            accessibilityLabel={`Current language ${language}`}
+          >
+            {languageFlag}
+          </ThemedText>
+        )}
       </ThemedView>
       <FlatList
         data={lessons}
@@ -127,6 +152,10 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     marginBottom: 0,
+  },
+  languageFlag: {
+    marginLeft: 'auto',
+    fontSize: 20,
   },
   listContent: {
     padding: 16,

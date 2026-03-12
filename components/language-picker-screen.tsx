@@ -1,39 +1,43 @@
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import { ALL_LANGUAGES, ONBOARDING_LANGUAGES } from '@/constants/languages';
 import { Colors } from '@/constants/theme';
 import { useLanguage } from '@/contexts/language-context';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { StyleSheet, TouchableOpacity } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-/** Languages available for selection (only French for now). */
-const AVAILABLE_LANGUAGES = [
-  { code: 'fr' as const, label: 'French' },
-] as const;
-
 export default function LanguagePickerScreen() {
-  const { setLanguage } = useLanguage();
+  const { language, setLanguage } = useLanguage();
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];
   const insets = useSafeAreaInsets();
 
-  const handleSelect = async (code: 'fr') => {
+  const handleSelect = async (code: (typeof ALL_LANGUAGES)[number]['code']) => {
     await setLanguage(code);
   };
 
   return (
     <ThemedView style={[styles.container, { paddingTop: insets.top + 40, paddingBottom: insets.bottom + 24 }]}>
       <ThemedText type="title" style={styles.title}>
-        Pick a language
+        Choose The Language
       </ThemedText>
       <ThemedText style={styles.subtitle}>
-        Choose the language you want to learn.
+        Select the language you want to learn. You can always change this later.
       </ThemedText>
       <ThemedView style={styles.options}>
-        {AVAILABLE_LANGUAGES.map(({ code, label }) => (
+        {ONBOARDING_LANGUAGES.map(({ code, label }) => {
+          const isSelected = language === code;
+          return (
           <TouchableOpacity
             key={code}
-            style={[styles.option, { borderColor: colors.icon, backgroundColor: colors.background }]}
+            style={[
+              styles.option,
+              {
+                borderColor: isSelected ? colors.tint : colors.icon,
+                backgroundColor: isSelected ? colors.tint : colors.background,
+              },
+            ]}
             onPress={() => handleSelect(code)}
             activeOpacity={0.7}
             accessibilityRole="button"
@@ -46,7 +50,8 @@ export default function LanguagePickerScreen() {
               Tap to continue
             </ThemedText>
           </TouchableOpacity>
-        ))}
+          );
+        })}
       </ThemedView>
     </ThemedView>
   );

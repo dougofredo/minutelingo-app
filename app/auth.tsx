@@ -4,11 +4,13 @@ import { IconSymbol } from "@/components/ui/icon-symbol";
 import { Colors } from "@/constants/theme";
 import { useToast } from "@/contexts/toast-context";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { touchProfileForWebhook } from "@/lib/touch-profile-for-webhook";
+import { updateProfileOnSignIn } from "@/lib/touch-profile-for-webhook";
 import { supabase } from "@/supabaseClient";
 import { makeRedirectUri } from "expo-auth-session";
 import * as QueryParams from "expo-auth-session/build/QueryParams";
 import * as Linking from "expo-linking";
+import { useLanguage } from "@/contexts/language-context";
+import { useProfile } from "@/contexts/profile-context";
 import { useRouter } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
 import { useEffect, useState } from "react";
@@ -51,9 +53,6 @@ const createSessionFromUrl = async (url: string) => {
       throw error;
     }
 
-    if (data.session?.user?.id) {
-      touchProfileForWebhook(data.session.user.id);
-    }
     return data.session;
   } catch (error: any) {
     console.error("Error creating session from URL:", error);
@@ -68,6 +67,8 @@ export default function AuthScreen() {
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const router = useRouter();
   const { showError, showSuccess } = useToast();
+  const { username } = useProfile();
+  const { language } = useLanguage();
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? "light"];
   const insets = useSafeAreaInsets();
@@ -125,14 +126,18 @@ export default function AuthScreen() {
     checkSession();
   }, []);
 
-  // Listen for auth state changes
+  // Listen for auth state changes and sync profile (name, language, email) on sign-in
   useEffect(() => {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event, session) => {
-      // Only touch profile on actual sign-in; skip TOKEN_REFRESHED / INITIAL_SESSION to avoid random webhook spam
       if (event === 'SIGNED_IN' && session?.user?.id) {
-        touchProfileForWebhook(session.user.id);
+        updateProfileOnSignIn({
+          userId: session.user.id,
+          email: session.user.email ?? null,
+          name: username ?? null,
+          language: language ?? null,
+        });
       }
       if (session?.user?.email) {
         setUserEmail(session.user.email);
@@ -150,7 +155,7 @@ export default function AuthScreen() {
     return () => {
       subscription.unsubscribe();
     };
-  }, []);
+  }, [username, language]);
 
   useEffect(() => {
     if (url) {

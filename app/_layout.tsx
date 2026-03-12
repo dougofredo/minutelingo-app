@@ -1,7 +1,7 @@
 import {
-    DarkTheme,
-    DefaultTheme,
-    ThemeProvider,
+  DarkTheme,
+  DefaultTheme,
+  ThemeProvider,
 } from "@react-navigation/native";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
@@ -11,8 +11,9 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 
 // import OnboardingTour from '@/components/onboarding-tour';
 import AppSplashScreen from "@/components/splash-screen";
-import LanguagePickerScreen from "@/components/language-picker-screen";
+import OnboardingFlowScreen from "@/components/onboarding-flow-screen";
 import { LanguageProvider, useLanguage } from "@/contexts/language-context";
+import { ProfileProvider, useProfile } from "@/contexts/profile-context";
 import { ToastProvider } from "@/contexts/toast-context";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { offlineStorage } from "@/services/offlineStorage";
@@ -24,7 +25,8 @@ export const unstable_settings = {
 function RootContent() {
   const colorScheme = useColorScheme();
   const [isSplashReady, setIsSplashReady] = useState(false);
-  const { language, isLoading } = useLanguage();
+  const { language, isLoading: isLanguageLoading } = useLanguage();
+  const { username, isLoading: isProfileLoading } = useProfile();
 
   // Initialize offline storage on app startup
   useEffect(() => {
@@ -33,37 +35,48 @@ function RootContent() {
     });
   }, []);
 
+  const isOnboarding =
+    !isLanguageLoading &&
+    !isProfileLoading &&
+    (!language || !username);
+
+  const isAppReady =
+    !isLanguageLoading &&
+    !isProfileLoading &&
+    !!language &&
+    !!username;
+
   return (
     <ThemeProvider
-      value={colorScheme === "dark" ? DarkTheme : DefaultTheme}
+      value={DefaultTheme}
     >
       {!isSplashReady && (
         <AppSplashScreen onFinish={() => setIsSplashReady(true)} />
       )}
-      {isSplashReady && !isLoading && !language && (
-        <LanguagePickerScreen />
+      {isSplashReady && isOnboarding && (
+        <OnboardingFlowScreen />
       )}
-      {isSplashReady && !isLoading && language && (
+      {isSplashReady && isAppReady && (
         <>
           <Stack>
-                <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-                <Stack.Screen
-                  name="auth"
-                  options={{ headerShown: false, presentation: "modal" }}
-                />
-                <Stack.Screen
-                  name="lesson-player"
-                  options={{ headerShown: false, presentation: "card" }}
-                />
-                <Stack.Screen
-                  name="subscription"
-                  options={{ headerShown: false, presentation: "modal" }}
-                />
-                <Stack.Screen
-                  name="modal"
-                  options={{ presentation: "modal", title: "Modal" }}
-                />
-              </Stack>
+            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+            <Stack.Screen
+              name="auth"
+              options={{ headerShown: false, presentation: "modal" }}
+            />
+            <Stack.Screen
+              name="lesson-player"
+              options={{ headerShown: false, presentation: "card" }}
+            />
+            <Stack.Screen
+              name="subscription"
+              options={{ headerShown: false, presentation: "modal" }}
+            />
+            <Stack.Screen
+              name="modal"
+              options={{ presentation: "modal", title: "Modal" }}
+            />
+          </Stack>
           <StatusBar style="auto" />
           {/* <OnboardingTour /> */}
         </>
@@ -76,9 +89,11 @@ export default function RootLayout() {
   return (
     <SafeAreaProvider>
       <ToastProvider>
-        <LanguageProvider>
-          <RootContent />
-        </LanguageProvider>
+        <ProfileProvider>
+          <LanguageProvider>
+            <RootContent />
+          </LanguageProvider>
+        </ProfileProvider>
       </ToastProvider>
     </SafeAreaProvider>
   );
