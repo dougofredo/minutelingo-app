@@ -1,9 +1,11 @@
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Colors } from '@/constants/theme';
-import { getLessonsForLanguage, type Lesson } from '@/data/lessons-fr';
+import { getLessonsForLanguage, type Lesson } from '@/data/lessons';
+import { getIntroTitleForLang } from '@/lib/dialog-intro';
 import { useLanguage } from '@/contexts/language-context';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useDialogIntros } from '@/hooks/use-dialog-intros';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { useMemo } from 'react';
@@ -46,6 +48,8 @@ export default function HomeScreen() {
     return getLessonsForLanguage(language);
   }, [language]);
 
+  const { intros: dialogIntros } = useDialogIntros(language ?? null);
+
   const handleLessonPress = (lesson: Lesson) => {
     router.push({
       pathname: '/lesson-player',
@@ -55,6 +59,8 @@ export default function HomeScreen() {
 
   const renderLessonItem = ({ item }: { item: Lesson }) => {
     const imageUrl = buildImageUrl(item.image);
+    const intro = item.dialog != null ? dialogIntros[item.dialog] : null;
+    const title = getIntroTitleForLang(intro ?? undefined, language ?? null) ?? `Lesson ${item.lesson}`;
     const subtitle =
       item.dialog != null && item.block != null
         ? `Dialog ${item.dialog} · Part ${item.block}`
@@ -84,7 +90,7 @@ export default function HomeScreen() {
           )}
           <ThemedView style={styles.lessonInfo}>
             <ThemedText type="defaultSemiBold" style={styles.lessonTitle} numberOfLines={2}>
-              Lesson {item.lesson}
+              {title}
             </ThemedText>
             {subtitle && (
               <ThemedText style={styles.lessonSubtitle} numberOfLines={1}>

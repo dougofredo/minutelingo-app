@@ -1,6 +1,7 @@
 /**
- * French lessons: audio and image paths are relative to EXPO_PUBLIC_R2_PUBLIC_URL.
+ * Lessons: audio and image paths are relative to EXPO_PUBLIC_R2_PUBLIC_URL.
  * Build full URL as: `${R2_PUBLIC_URL}/${audio}` or `${R2_PUBLIC_URL}/${image}`.
+ * Generic for all languages (fr, de, etc.) via getLessonsForLanguage(lang).
  */
 import type { LanguageCode } from '@/constants/languages';
 
@@ -10,7 +11,7 @@ export interface Lesson {
   block: number | null;
   language: LanguageCode;
   /**
-   * Path relative to R2 base (e.g. fr/dialog1/lesson1.mp3), or null if no audio.
+   * Path relative to R2 base (e.g. fr/dialog1/lesson_1_fr.mp3), or null if no audio.
    * Built from the generic mapping table below.
    */
   audio: string | null;
@@ -29,7 +30,7 @@ type LessonFolderRow = {
 /**
  * Generic mapping of lesson → folder.
  *
- * Audio: `{lang}/{folder}/lesson{lesson}.mp3`
+ * Audio: `{lang}/{folder}/lesson_{lesson}_{lang}.mp3`
  * Image: `{lang}/{folder}/image.jpeg`
  */
 const LESSON_FOLDER_TABLE: LessonFolderRow[] = [
@@ -82,7 +83,9 @@ function buildLessonsFromTable(language: LanguageCode): Lesson[] {
     let dialog: number | null = null;
     let block: number | null = null;
 
-    if (folder.startsWith('dialog')) {
+    const isDialogFolder = folder.startsWith('dialog');
+
+    if (isDialogFolder) {
       const dialogNumber = Number(folder.replace('dialog', ''));
       if (!Number.isNaN(dialogNumber)) {
         dialog = dialogNumber;
@@ -93,8 +96,13 @@ function buildLessonsFromTable(language: LanguageCode): Lesson[] {
       }
     }
 
-    const audio = `${language}/${folder}/lesson${lesson}.mp3`;
-    const image = `${language}/${folder}/image.jpeg`;
+    // Non-dialog lessons (lesson5, lesson10, ...) live under /{lang}/lessons/{folder}/...
+    const baseFolder = isDialogFolder
+      ? `${language}/${folder}`
+      : `${language}/lessons/${folder}`;
+
+    const audio = `${baseFolder}/lesson_${lesson}_${language}.mp3`;
+    const image = `${baseFolder}/image.jpeg`;
 
     return {
       lesson,
@@ -106,8 +114,6 @@ function buildLessonsFromTable(language: LanguageCode): Lesson[] {
     };
   });
 }
-
-export const LESSONS_FR: Lesson[] = buildLessonsFromTable('fr');
 
 /** Returns lessons for the given language, using shared mapping logic. */
 export function getLessonsForLanguage(lang: LanguageCode | null): Lesson[] {

@@ -39,6 +39,10 @@ export default function UserScreen() {
         return '🇫🇷';
       case 'es':
         return '🇪🇸';
+      case 'it':
+        return '🇮🇹';
+      case 'de':
+        return '🇩🇪';
       default:
         return null;
     }

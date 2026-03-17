@@ -8,9 +8,21 @@
       "ios": { "simulator": true }
     },
     "production": {
+      "credentialsSource": "remote",
       "android": { "buildType": "app-bundle" },
-      "ios": { "distribution": "store" }
+      "ios": { "distribution": "store" },
+      "env": {
+        "EXPO_PUBLIC_SUPABASE_URL": "@EXPO_PUBLIC_SUPABASE_URL",
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "@EXPO_PUBLIC_SUPABASE_ANON_KEY",
+        "EXPO_PUBLIC_R2_PUBLIC_URL": "@EXPO_PUBLIC_R2_PUBLIC_URL",
+        "EXPO_PUBLIC_ISFREE": "@EXPO_PUBLIC_ISFREE"
+      }
     }
   },
-  "submit": { "production": { "ios": { "ascAppId": "6759039882" }, "android": { "track": "production" } } }
+  "submit": {
+    "production": {
+      "ios": { "ascAppId": "6760651451" },
+      "android": { "track": "production" }
+    }
+  }
 }

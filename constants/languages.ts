@@ -17,6 +17,6 @@ export const ONBOARDING_LANGUAGES: LanguageOption[] = ALL_LANGUAGES;
 
 /** Languages that can be switched from the Account page today. */
 export const ACCOUNT_LANGUAGES: LanguageOption[] = ALL_LANGUAGES.filter((lang) =>
-  ['fr', 'es'].includes(lang.code),
+  ['fr', 'es', 'de'].includes(lang.code),
 );
 

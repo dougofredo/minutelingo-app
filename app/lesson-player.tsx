@@ -3,8 +3,10 @@ import { ThemedView } from "@/components/themed-view";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { Colors } from "@/constants/theme";
 import { useToast } from "@/contexts/toast-context";
-import { getLessonsForLanguage, type Lesson } from "@/data/lessons-fr";
+import { getLessonsForLanguage, type Lesson } from "@/data/lessons";
+import { getIntroTitleForLang } from "@/lib/dialog-intro";
 import { useLanguage } from "@/contexts/language-context";
+import { useDialogIntro } from "@/hooks/use-dialog-intros";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { Audio } from "expo-av";
 import { Image } from "expo-image";
@@ -57,6 +59,13 @@ export default function LessonPlayerScreen() {
     () => (language ? getLessonsForLanguage(language) : []),
     [language],
   );
+
+  const { intro: dialogIntro } = useDialogIntro(
+    language ?? null,
+    lesson?.dialog ?? null,
+  );
+
+  const displayTitle = getIntroTitleForLang(dialogIntro ?? undefined, language ?? null) ?? `Lesson ${lesson?.lesson ?? ""}`;
 
   const currentLessonIndex =
     lesson && lessonsInLanguage.length > 0
@@ -264,8 +273,8 @@ export default function LessonPlayerScreen() {
         >
           <IconSymbol name="chevron.left" size={24} color={colors.text} />
         </TouchableOpacity>
-        <ThemedText type="subtitle" style={styles.headerTitle}>
-          Lesson {lesson.lesson}
+        <ThemedText type="subtitle" style={styles.headerTitle} numberOfLines={1}>
+          {displayTitle}
         </ThemedText>
       </ThemedView>
 
@@ -313,7 +322,7 @@ export default function LessonPlayerScreen() {
 
         <ThemedView style={styles.lessonInfo}>
           <ThemedText type="title" style={styles.lessonTitle}>
-            Lesson {lesson.lesson}
+            {displayTitle}
           </ThemedText>
           {lesson.dialog != null && lesson.block != null && (
             <ThemedText style={styles.lessonSubtitle}>
